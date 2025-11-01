@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intentional Pulse Log</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc; /* Light background */
+        }
+        .scroll-area {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="min-h-screen flex flex-col items-center p-4 sm:p-8">
+    
+    <!-- Header/Branding -->
+    <header class="w-full max-w-2xl text-center mb-8">
+        <h1 class="text-4xl font-extrabold text-[#5B21B6] mb-1">Intentional Pulse</h1>
+        <p class="text-lg text-gray-600">Your daily guide to mindful living.</p>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="w-full max-w-2xl bg-white shadow-xl rounded-xl p-6 md:p-8">
+        <div id="loading-indicator" class="text-center text-indigo-500 font-medium hidden">Loading data...</div>
+        <div id="auth-status" class="text-center text-sm text-gray-500 mb-4"></div>
+
+        <!-- Today's Intention Card -->
+        <section id="intention-section" class="mb-8 border-b pb-6 border-indigo-100">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                Today's Intention
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 ml-2 text-[#5B21B6]" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M5.5 10a.5.5 0 01.5-.5h2a.5.5 0 010 1H6a.5.5 0 01-.5-.5z" />
+                    <path fill-rule="evenodd" d="M16 11H4a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2zM4 17a2 2 0 002 2h8a2 2 0 002-2v-4H4v4z" clip-rule="evenodd" />
+                </svg>
+            </h2>
+
+            <!-- Form for setting intention -->
+            <form id="intention-form" class="space-y-4">
+                <textarea id="intention-input" class="w-full p-3 border border-indigo-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 resize-none placeholder-gray-500" rows="3" placeholder="Set your intention for today (e.g., 'To practice patience in all my interactions' or 'To focus on deep work')." required></textarea>
+                <button type="submit" class="w-full bg-[#8B5CF6] text-white font-semibold py-3 rounded-lg shadow-md hover:bg-[#7C3AED] transition duration-300 transform hover:scale-[1.01] disabled:opacity-50" disabled id="intention-submit-button">
+                    Set Intention
+                </button>
+            </form>
+            
+            <!-- Display if intention is already set -->
+            <div id="intention-display" class="hidden p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                <p class="font-medium text-indigo-800">Intention Set:</p>
+                <p id="current-intention-text" class="text-lg mt-1 text-gray-700"></p>
+                <button onclick="document.getElementById('edit-modal').classList.remove('hidden')" class="text-sm mt-3 text-indigo-600 hover:text-indigo-800 font-medium">Edit Intention</button>
+            </div>
+        </section>
+
+        <!-- Past Reflections Section -->
+        <section>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                Past Reflections
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 ml-2 text-[#5B21B6]" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l3 3a1 1 0 001.414-1.414L10 10.586V6z" clip-rule="evenodd" />
+                </svg>
+            </h2>
+            <div id="reflections-list" class="space-y-4 scroll-area">
+                <p id="no-reflections" class="text-gray-500 text-center py-4">Your log is empty. Set your first intention!</p>
+                <!-- Reflections will be dynamically inserted here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer with Branding & Links -->
+    <footer class="w-full max-w-2xl text-center mt-12 pt-6 border-t border-gray-200">
+        <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-8 text-sm text-gray-500">
+            <a href="https://intentionalpulse.com" target="_blank" class="hover:text-[#5B21B6] transition duration-200">IntentionalPulse.com</a>
+            <a href="https://instagram.com/intentionalpulse" target="_blank" class="hover:text-[#5B21B6] transition duration-200">Instagram (@intentionalpulse)</a>
+            <span id="user-id-display" class="text-xs text-gray-400 mt-2 sm:mt-0"></span>
+        </div>
+    </footer>
+</div>
+
+<!-- Modal for Reflection/Edit (Hidden by default) -->
+<div id="edit-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4" id="modal-title">Set Reflection</h3>
+        <p class="text-sm text-gray-500 mb-4" id="modal-date"></p>
+        
+        <p class="font-medium text-indigo-700 mb-2">Intention:</p>
+        <p id="modal-intention-text" class="text-gray-700 p-2 bg-indigo-50 rounded-lg mb-4 italic"></p>
+
+        <form id="modal-form" data-date="">
+            <label for="reflection-input" class="block font-medium text-gray-700 mb-2" id="reflection-label">What was your reflection on this day?</label>
+            <textarea id="reflection-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 resize-none" rows="4" required></textarea>
+            
+            <div class="flex justify-end space-x-3 mt-4">
+                <button type="button" onclick="document.getElementById('edit-modal').classList.add('hidden')" class="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition duration-150">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-[#8B5CF6] text-white font-semibold rounded-lg shadow-md hover:bg-[#7C3AED] transition duration-150">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Custom Message Box (instead of alert/confirm) -->
+<div id="message-box" class="fixed top-4 right-4 bg-white p-4 rounded-lg shadow-xl border-t-4 border-red-500 hidden z-50 transition-opacity duration-300">
+    <p id="message-text" class="text-gray-800"></p>
+</div>
+
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- GLOBAL VARIABLES (Provided by Canvas Environment) ---
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    let db;
+    let auth;
+    let userId = null;
+    let isAuthReady = false;
+    let todayDateString;
+    let currentDayDocId;
+
+    // Elements
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const authStatus = document.getElementById('auth-status');
+    const userIdDisplay = document.getElementById('user-id-display');
+    const intentionForm = document.getElementById('intention-form');
+    const intentionInput = document.getElementById('intention-input');
+    const intentionSubmitButton = document.getElementById('intention-submit-button');
+    const intentionDisplay = document.getElementById('intention-display');
+    const currentIntentionText = document.getElementById('current-intention-text');
+    const reflectionsList = document.getElementById('reflections-list');
+    const noReflections = document.getElementById('no-reflections');
+    const modal = document.getElementById('edit-modal');
+    const modalForm = document.getElementById('modal-form');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDate = document.getElementById('modal-date');
+    const modalIntentionText = document.getElementById('modal-intention-text');
+    const reflectionInput = document.getElementById('reflection-input');
+    const reflectionLabel = document.getElementById('reflection-label');
+
+    // Utility Functions
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    const displayDate = (dateString) => new Date(dateString + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    function showMessage(text, isError = false) {
+        const box = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        
+        messageText.textContent = text;
+        box.classList.remove('hidden', 'border-red-500', 'border-green-500');
+        box.classList.add('opacity-0');
+        
+        if (isError) {
+            box.classList.add('border-red-500');
+        } else {
+            box.classList.add('border-green-500');
+        }
+
+        // Fade in
+        setTimeout(() => box.classList.remove('opacity-0'), 10);
+        
+        // Auto-hide
+        setTimeout(() => {
+            box.classList.add('opacity-0');
+            setTimeout(() => box.classList.add('hidden'), 300);
+        }, 3000);
+    }
+
+    function getIntentionPath() {
+        if (!userId) {
+            throw new Error("User ID is not defined.");
+        }
+        // Private data storage path: /artifacts/{appId}/users/{userId}/{collectionName}
+        return `artifacts/${appId}/users/${userId}/intentions`;
+    }
+
+    // --- Authentication and Initialization ---
+
+    async function initializeAppAndAuth() {
+        loadingIndicator.classList.remove('hidden');
+        setLogLevel('Debug');
+        
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            // Determine today's date string
+            todayDateString = formatDate(new Date());
+            currentDayDocId = todayDateString;
+
+            // Handle Authentication
+            if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken);
+            } else {
+                await signInAnonymously(auth);
+            }
+
+            // Set up Auth State Listener
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
+                    authStatus.textContent = `Signed in. User ID: ${userId}`;
+                    userIdDisplay.textContent = `User ID: ${userId}`;
+                    intentionSubmitButton.disabled = false;
+                    loadIntentions(); // Start real-time data listener
+                } else {
+                    // This block is mainly for initial sign-in, should not happen later.
+                    userId = crypto.randomUUID(); 
+                    isAuthReady = true;
+                    authStatus.textContent = `Signed in anonymously (Temporary ID).`;
+                    userIdDisplay.textContent = `Temporary ID: ${userId}`;
+                    intentionSubmitButton.disabled = false;
+                    loadIntentions();
+                }
+                loadingIndicator.classList.add('hidden');
+            });
+
+        } catch (error) {
+            console.error("Firebase Initialization or Auth Failed:", error);
+            showMessage(`Initialization failed: ${error.message}`, true);
+            loadingIndicator.classList.add('hidden');
+        }
+    }
+
+    // --- Firestore Operations ---
+
+    async function saveIntention(intentionText) {
+        if (!isAuthReady || !db) return;
+
+        try {
+            const docRef = doc(db, getIntentionPath(), currentDayDocId);
+            await setDoc(docRef, {
+                intention: intentionText,
+                reflection: "",
+                date: todayDateString,
+                timestamp: serverTimestamp(),
+            }, { merge: true });
+
+            showMessage("Daily intention saved successfully!");
+            intentionInput.value = ""; // Clear input after successful save
+
+        } catch (e) {
+            console.error("Error setting intention: ", e);
+            showMessage(`Error saving intention: ${e.message}`, true);
+        }
+    }
+
+    async function saveReflection(dateId, reflectionText) {
+        if (!isAuthReady || !db) return;
+
+        try {
+            const docRef = doc(db, getIntentionPath(), dateId);
+            await setDoc(docRef, {
+                reflection: reflectionText,
+            }, { merge: true });
+
+            showMessage("Reflection saved successfully!");
+            modal.classList.add('hidden');
+
+        } catch (e) {
+            console.error("Error setting reflection: ", e);
+            showMessage(`Error saving reflection: ${e.message}`, true);
+        }
+    }
+
+    function loadIntentions() {
+        if (!isAuthReady || !db || !userId) return;
+
+        const q = query(collection(db, getIntentionPath()), orderBy("date", "desc"));
+
+        onSnapshot(q, (snapshot) => {
+            const intentions = [];
+            let todayIntention = null;
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const day = { id: doc.id, ...data };
+
+                if (doc.id === todayDateString) {
+                    todayIntention = day;
+                } else {
+                    intentions.push(day);
+                }
+            });
+
+            renderTodayIntention(todayIntention);
+            renderPastReflections(intentions);
+
+        }, (error) => {
+            console.error("Error getting intentions: ", error);
+            showMessage(`Error loading data: ${error.message}`, true);
+        });
+    }
+
+    // --- UI Rendering and Event Handlers ---
+
+    function renderTodayIntention(todayIntention) {
+        if (todayIntention && todayIntention.intention) {
+            intentionForm.classList.add('hidden');
+            intentionDisplay.classList.remove('hidden');
+            currentIntentionText.textContent = todayIntention.intention;
+            // Update modal for current day's reflection/edit
+            setupModal(todayDateString, todayIntention.intention, todayIntention.reflection || '', 'reflection');
+        } else {
+            intentionForm.classList.remove('hidden');
+            intentionDisplay.classList.add('hidden');
+            intentionInput.value = "";
+        }
+    }
+
+    function renderPastReflections(intentions) {
+        reflectionsList.innerHTML = ''; // Clear previous list
+        
+        if (intentions.length === 0) {
+            noReflections.classList.remove('hidden');
+            return;
+        }
+        
+        noReflections.classList.add('hidden');
+
+        intentions.forEach(day => {
+            const reflectionCard = document.createElement('div');
+            reflectionCard.className = 'p-4 bg-white rounded-lg shadow-sm border border-gray-100 transition duration-150 hover:shadow-md';
+            
+            let reflectionContent;
+            let buttonText;
+            let buttonClass;
+            
+            if (day.reflection) {
+                reflectionContent = `<p class="text-sm text-gray-600 mt-2">${day.reflection}</p>`;
+                buttonText = 'Edit Reflection';
+                buttonClass = 'text-indigo-600 hover:text-indigo-800';
+            } else {
+                reflectionContent = `<p class="text-sm text-gray-400 mt-2 italic">No reflection set yet.</p>`;
+                buttonText = 'Add Reflection';
+                buttonClass = 'text-green-600 hover:text-green-800';
+            }
+
+            reflectionCard.innerHTML = `
+                <div class="flex justify-between items-start border-b pb-2 mb-2">
+                    <p class="text-lg font-semibold text-gray-800">${displayDate(day.date)}</p>
+                    <button data-date-id="${day.id}" data-intention="${day.intention}" data-reflection="${day.reflection || ''}" 
+                            class="text-sm font-medium ${buttonClass} reflection-button">
+                        ${buttonText}
+                    </button>
+                </div>
+                <p class="font-medium text-indigo-700">Intention: <span class="text-gray-700 font-normal italic">${day.intention}</span></p>
+                ${reflectionContent}
+            `;
+            
+            reflectionsList.appendChild(reflectionCard);
+        });
+
+        // Attach listeners to the dynamically created buttons
+        document.querySelectorAll('.reflection-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const dateId = e.target.getAttribute('data-date-id');
+                const intention = e.target.getAttribute('data-intention');
+                const reflection = e.target.getAttribute('data-reflection');
+                setupModal(dateId, intention, reflection, 'reflection');
+            });
+        });
+    }
+
+    function setupModal(dateId, intentionText, reflectionText, mode = 'edit') {
+        modalForm.setAttribute('data-date', dateId);
+        modalIntentionText.textContent = intentionText;
+        reflectionInput.value = reflectionText;
+        modalDate.textContent = displayDate(dateId);
+        
+        if (dateId === todayDateString) {
+             modalTitle.textContent = "Edit Today's Intention / Add Reflection";
+             reflectionLabel.textContent = "Today's Reflection (Optional):";
+        } else {
+             modalTitle.textContent = "Add/Edit Reflection";
+             reflectionLabel.textContent = "Reflection:";
+        }
+        
+        modal.classList.remove('hidden');
+    }
+
+
+    // --- Setup Event Listeners ---
+
+    intentionForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const intention = intentionInput.value.trim();
+        if (intention) {
+            saveIntention(intention);
+        } else {
+            showMessage("Please enter your daily intention.", true);
+        }
+    });
+
+    modalForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const dateId = modalForm.getAttribute('data-date');
+        const reflection = reflectionInput.value.trim();
+        
+        if (dateId === todayDateString) {
+            // Check if user is also editing the intention (not supported by this flow, but useful for quick edit)
+            // For simplicity, we only allow reflection save in the modal for past days, and use the main form for today's intention.
+            // But if the user clicks 'Edit Intention', we allow them to save the reflection here.
+            
+            const intentionText = modalIntentionText.textContent.trim(); // Get the intention text from the display
+            
+            // To edit the *intention* from the modal, we would need another input, but for simplicity, we only save reflection here.
+            // If the user uses the 'Edit Intention' button, we just allow them to add/edit the reflection.
+            
+            saveReflection(dateId, reflection);
+
+        } else if (dateId) {
+            saveReflection(dateId, reflection);
+        } else {
+             showMessage("Error: No date context found for saving reflection.", true);
+        }
+    });
+
+    // --- Start Application ---
+    initializeAppAndAuth();
+
+</script>
+</body>
+</html>
